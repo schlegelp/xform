@@ -1,0 +1,18 @@
+h5py>=3.1
+morphops>=0.1.11
+numpy>=1.16
+pandas>=1.0
+setuptools>=50.6
+tqdm>=4.45
+typing-extensions>=3.7.4
+molesq>=0.2.0
+
+#extra: dev
+
+flake8
+wheel
+mypy
+pytest
+pytest-env
+pytest-xvfb
+gitpython
