@@ -26,7 +26,6 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as mcl
 import networkx as nx
 import seaborn as sns
-import trimesh as tm
 
 from matplotlib.lines import Line2D
 from scipy.spatial.distance import pdist
@@ -35,11 +34,11 @@ from collections import namedtuple
 from typing import List, Union, Optional
 from typing_extensions import Literal
 
-from . import utils
+from .. import utils
+from ..transforms import (TransformSequence, BaseTransform, AliasTransform,
+                          CMTKtransform, H5transform)
 
-from . import factory
-from .base import TransformSequence, BaseTransform, AliasTransform
-from .xfm_funcs import mirror, xform
+from ..xfm_funcs import mirror, xform
 
 # Catch some stupid warning about installing python-Levenshtein
 with warnings.catch_warnings():
@@ -47,22 +46,23 @@ with warnings.catch_warnings():
     import fuzzywuzzy as fw
     import fuzzywuzzy.process
 
-__all__ = ['xform_brain', 'mirror_brain', 'symmetrize_brain']
+__all__ = ['xform_space', 'mirror_space']
 
-logger = config.logger
+FACTORY_METHODS = {'.list': CMTKtransform,
+                   '.h5': H5transform}
 
 # Defines entry the registry needs to register a transform
-transform_reg = namedtuple('Transform',
+TRANSFORM_REG = namedtuple('Transform',
                            ['source', 'target', 'transform', 'type',
                             'invertible', 'weight'])
 
 # Check for environment variable pointing to registries
-_os_transpaths = os.environ.get('NAVIS_TRANSFORMS', '')
+OS_TRANSPATHS = os.environ.get('XFORM_TRANSPATH', '')
 try:
-    _os_transpaths = [i for i in _os_transpaths.split(';') if len(i) > 0]
+    OS_TRANSPATHS = [i for i in OS_TRANSPATHS.split(';') if len(i) > 0]
 except BaseException:
-    logger.error('Error parsing the `NAVIS_TRANSFORMS` environment variable')
-    _os_transpaths = []
+    warnings.warn('Error parsing the `XFORM_TRANSPATH` environment variable')
+    OS_TRANSPATHS = []
 
 
 class TemplateRegistry:
@@ -77,7 +77,7 @@ class TemplateRegistry:
 
     def __init__(self, scan_paths: bool = True):
         # Paths to scan for transforms
-        self._transpaths = _os_transpaths
+        self._transpaths = OS_TRANSPATHS
         # Transforms
         self._transforms = []
         # Template brains
@@ -172,7 +172,7 @@ class TemplateRegistry:
         if trigger_scan:
             self.scan_paths()
 
-    def register_templatebrain(self, template: 'TemplateBrain',
+    def register_template(self, template: 'TemplateSpace',
                                skip_existing=True):
         """Register a template brain.
 
@@ -180,15 +180,15 @@ class TemplateRegistry:
 
         Parameters
         ----------
-        template :      TemplateBrain
-                        TemplateBrain to register.
+        template :      TemplateSpace
+                        TemplateSpace to register.
         skip_existing : bool
                         If True, will skip existing template brains.
 
         """
         utils.eval_param(template,
                          name='template',
-                         allowed_types=(TemplateBrain, ))
+                         allowed_types=(TemplateSpace, ))
 
         if template not in self._templates or not skip_existing:
             self._templates.append(template)
@@ -230,7 +230,7 @@ class TemplateRegistry:
         assert isinstance(transform, (BaseTransform, TransformSequence))
 
         # Translate into edge
-        edge = transform_reg(source=source, target=target, transform=transform,
+        edge = TRANSFORM_REG(source=source, target=target, transform=transform,
                              type=transform_type, invertible=invertible,
                              weight=weight)
 
@@ -282,14 +282,14 @@ class TemplateRegistry:
                 source = path.name.split('_')[1].split('.')[0]
 
             # Initialize the transform
-            transform = factory.factory_methods[path.suffix](path, **kwargs)
+            transform = FACTORY_METHODS[path.suffix](path, **kwargs)
 
             self.register_transform(transform=transform,
                                     source=source,
                                     target=target,
                                     transform_type=transform_type)
         except BaseException as e:
-            logger.error(f'Error registering {path} as transform: {str(e)}')
+            warnings.warn(f'Error registering {path} as transform: {str(e)}')
 
     def scan_paths(self, extra_paths: List[str] = None):
         """Scan registered paths for transforms and add to registry.
@@ -317,7 +317,7 @@ class TemplateRegistry:
             # Go over the file extensions we can work with (.h5, .list, .json)
             # These file extensions are registered in the
             # `navis.transforms.factory` module
-            for ext in factory.factory_methods:
+            for ext in FACTORY_METHODS:
                 for hit in path.rglob(f'*{ext}'):
                     if hit.is_dir() or hit.is_file():
                         # Register this file
@@ -494,7 +494,7 @@ class TemplateRegistry:
             transforms = np.append(transforms, tr)
 
         if any(np.unique(seq, return_counts=True)[1] > 1):
-            logger.warning('Bridging sequence contains loop: '
+            warnings.warn('Bridging sequence contains loop: '
                            f'{"->".join(seq)}')
 
         # Generate the transform sequence
@@ -591,7 +591,7 @@ class TemplateRegistry:
 
         return None
 
-    def find_template(self, name: str, non_found: str = 'raise') -> 'TemplateBrain':
+    def find_template(self, name: str, non_found: str = 'raise') -> 'TemplateSpace':
         """Search for a given template (brain).
 
         Parameters
@@ -607,7 +607,7 @@ class TemplateRegistry:
 
         Returns
         -------
-        TemplateBrain
+        TemplateSpace
 
         """
         for tmp in self.templates:
@@ -617,7 +617,7 @@ class TemplateRegistry:
                 return tmp
 
         if non_found == 'raise':
-            raise ValueError(f'No template brain registered that matches "{name}"')
+            raise ValueError(f'No templates registered that matches "{name}"')
         return None
 
     def plot_bridging_graph(self, **kwargs):
@@ -662,15 +662,13 @@ class TemplateRegistry:
         plt.legend(lines, labels)
 
 
-def xform_brain(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
+def xform_space(x: Union['pd.DataFrame', 'np.ndarray'],
                 source: str,
                 target: str,
                 affine_fallback: bool = True,
                 caching: bool = True,
-                verbose = True) -> Union['core.NeuronObject',
-                                         'pd.DataFrame',
-                                         'np.ndarray']:
-    """Transform 3D data between template brains.
+                verbose = True) -> np.ndarray:
+    """Transform 3D data between template spaces.
 
     This requires the appropriate transforms to be registered with ``navis``.
     See the docs for details.
@@ -805,182 +803,14 @@ def _guess_change(xyz_before: np.ndarray,
     return mean_change, magnitude
 
 
-def symmetrize_brain(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
-                     template: Union[str, 'TemplateBrain'],
-                     via: Optional[str] = 'auto',
-                     verbose: bool = False) -> Union['core.NeuronObject',
-                                                     'pd.DataFrame',
-                                                     'np.ndarray']:
-    """Symmetrize 3D object (neuron, coordinates).
-
-    The way this works is by:
-     1. Finding the closest mirror transform (unless provided)
-     2. Mirror data on the left-hand-side to the right-hand-side using the
-        proper (warp) mirror transform to offset deformations
-     3. Simply flip that data back to the left-hand-side
-
-    This works reasonably well but may produce odd results around the midline.
-    For high quality symmetrization you are better off generating dedicated
-    transform (see ``navis-flybrains`` for an example).
-
-    Parameters
-    ----------
-    x :             Neuron/List | Volume/trimesh | numpy.ndarray | pandas.DataFrame
-                    Data to transform. Dataframe must contain ``['x', 'y', 'z']``
-                    columns. Numpy array must be shape ``(N, 3)``.
-    template :      str | TemplateBrain
-                    Source template brain space that the data is in. If string
-                    will be searched against registered template brains.
-    via :           "auto" | str
-                    By default ("auto") it will find and apply the closest
-                    mirror transform. You can also specify a template that
-                    should be used. That template must have a mirror transform!
-
-    Returns
-    -------
-    xs
-                    Same object type as input (array, neurons, etc) but
-                    hopefully symmetrical.
-
-    Examples
-    --------
-    This example requires the
-    `flybrains <https://github.com/schlegelp/navis-flybrains>`_
-    library to be installed: ``pip3 install flybrains``
-
-    >>> import navis
-    >>> import flybrains
-    >>> # Get the FAFB14 neuropil mesh
-    >>> m = flybrains.FAFB14.mesh
-    >>> # Symmetrize the mesh
-    >>> s = navis.symmetrize_brain(m, template='FAFB14')
-    >>> # Plot side-by-side for comparison
-    >>> m.plot3d()                                              # doctest: +SKIP
-    >>> s.plot3d(color=(1, 0, 0))                               # doctest: +SKIP
-
-    """
-    if not isinstance(template, str):
-        TypeError(f'Expected template of type str, got "{type(template)}"')
-
-    if via == 'auto':
-        # Find closest mirror transform
-        via = registry.find_closest_mirror_reg(template)
-
-    if isinstance(x, core.NeuronList):
-        if len(x) == 1:
-            x = x[0]
-        else:
-            xf = []
-            for n in config.tqdm(x, desc='Mirroring',
-                                 disable=config.pbar_hide,
-                                 leave=config.pbar_leave):
-                xf.append(symmetrize_brain(n,
-                                           template=template,
-                                           via=via))
-            return core.NeuronList(xf)
-
-    if isinstance(x, core.BaseNeuron):
-        x = x.copy()
-        if isinstance(x, core.TreeNeuron):
-            x.nodes = symmetrize_brain(x.nodes,
-                                       template=template,
-                                       via=via)
-        elif isinstance(x, core.Dotprops):
-            x.points = symmetrize_brain(x.points,
-                                        template=template,
-                                        via=via)
-            # Set tangent vectors and alpha to None so they will be regenerated
-            x._vect = x._alpha = None
-        elif isinstance(x, core.MeshNeuron):
-            x.vertices = symmetrize_brain(x.vertices,
-                                          template=template,
-                                          via=via)
-        else:
-            raise TypeError(f"Don't know how to transform neuron of type '{type(x)}'")
-
-        if x.has_connectors:
-            x.connectors = symmetrize_brain(x.connectors,
-                                            template=template,
-                                            via=via)
-        return x
-    elif isinstance(x, tm.Trimesh):
-        x = x.copy()
-        x.vertices = symmetrize_brain(x.vertices,
-                                      template=template,
-                                      via=via)
-        return x
-    elif isinstance(x, pd.DataFrame):
-        if any([c not in x.columns for c in ['x', 'y', 'z']]):
-            raise ValueError('DataFrame must have x, y and z columns.')
-        x = x.copy()
-        x.loc[:, ['x', 'y', 'z']] = symmetrize_brain(x[['x', 'y', 'z']].values.astype(float),
-                                                     template=template,
-                                                     via=via)
-        return x
-    else:
-        try:
-            # At this point we expect numpy arrays
-            x = np.asarray(x)
-        except BaseException:
-            raise TypeError(f'Unable to transform data of type "{type(x)}"')
-
-        if not x.ndim == 2 or x.shape[1] != 3:
-            raise ValueError('Array must be of shape (N, 3).')
-
-    # Now find the meta info for this template brain
-    if isinstance(template, TemplateBrain):
-        tb = template
-    else:
-        tb = registry.find_template(template, non_found='raise')
-
-    # Get the bounding box
-    if not hasattr(tb, 'boundingbox'):
-        raise ValueError(f'Template "{tb.label}" has no bounding box info.')
-
-    if not isinstance(tb.boundingbox, (list, tuple, np.ndarray)):
-        raise TypeError("Expected the template brain's bounding box to be a "
-                        f"list, tuple or array - got '{type(tb.boundingbox)}'")
-
-    # Get bounding box of template brain
-    bbox = np.asarray(tb.boundingbox)
-
-    # Reshape if flat array
-    if bbox.ndim == 1:
-        bbox = bbox.reshape(3, 2)
-
-    # Find points on the left
-    center = bbox[0][0] + (bbox[0][1] - bbox[0][0]) / 2
-    is_left = x[:, 0] > center
-
-    # Make a copy of the original data
-    x = x.copy()
-
-    # If nothing to symmetrize - return
-    if is_left.sum() == 0:
-        return x
-
-    # Mirror with compensation for deformations
-    xm = mirror_brain(x[is_left], template=template, via=via,
-                      mirror_axis='x', verbose=verbose)
-
-    # And now flip them back without compensation for deformations
-    xmf = mirror_brain(xm, template=template, warp=False, mirror_axis='x')
-
-    # Replace values
-    x[is_left] = xmf
-
-    return x
-
-
-def mirror_brain(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
-                 template: Union[str, 'TemplateBrain'],
+def mirror_space(x: Union['pd.DataFrame', 'np.ndarray'],
+                 template: Union[str, 'TemplateSpace'],
                  mirror_axis: Union[Literal['x'],
                                     Literal['y'],
                                     Literal['z']] = 'x',
                  warp: Union[Literal['auto'], bool] = 'auto',
                  via: Optional[str] = None,
-                 verbose: bool = False) -> Union['core.NeuronObject',
-                                                 'pd.DataFrame',
+                 verbose: bool = False) -> Union['pd.DataFrame',
                                                  'np.ndarray']:
     """Mirror 3D object (neuron, coordinates) about given axis.
 
@@ -995,7 +825,7 @@ def mirror_brain(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
     x :             Neuron/List | Volume/trimesh | numpy.ndarray | pandas.DataFrame
                     Data to transform. Dataframe must contain ``['x', 'y', 'z']``
                     columns. Numpy array must be shape ``(N, 3)``.
-    template :      str | TemplateBrain
+    template :      str | TemplateSpace
                     Source template brain space that the data is in. If string
                     will be searched against registered template brains.
                     Alternatively check out :func:`navis.transforms.mirror`
@@ -1060,86 +890,22 @@ def mirror_brain(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
     # If we go via another brain space
     if via and via != template:
         # Xform to "via" space
-        xf = xform_brain(x, source=template, target=via, verbose=verbose)
+        xf = xform_space(x, source=template, target=via, verbose=verbose)
         # Mirror
-        xfm = mirror_brain(xf,
+        xfm = mirror_space(xf,
                            template=via,
                            mirror_axis=mirror_axis,
                            warp=warp,
                            via=None)
         # Xform back to original template space
-        xfm_inv = xform_brain(xfm, source=via, target=template, verbose=verbose)
+        xfm_inv = xform_space(xfm, source=via, target=template, verbose=verbose)
         return xfm_inv
 
-    if isinstance(x, core.NeuronList):
-        if len(x) == 1:
-            x = x[0]
-        else:
-            xf = []
-            for n in config.tqdm(x, desc='Mirroring',
-                                 disable=config.pbar_hide,
-                                 leave=config.pbar_leave):
-                xf.append(mirror_brain(n,
-                                       template=template,
-                                       mirror_axis=mirror_axis,
-                                       warp=warp))
-            return core.NeuronList(xf)
-
-    if isinstance(x, core.BaseNeuron):
-        x = x.copy()
-        if isinstance(x, core.TreeNeuron):
-            x.nodes = mirror_brain(x.nodes,
-                                   template=template,
-                                   mirror_axis=mirror_axis,
-                                   warp=warp)
-        elif isinstance(x, core.Dotprops):
-            if isinstance(x.k, type(None)) or x.k <= 0:
-                # If no k, we need to mirror vectors too
-                hp = mirror_brain(x.points + x.vect,
-                                  template=template,
-                                  mirror_axis=mirror_axis,
-                                  warp=warp)
-
-            x.points = mirror_brain(x.points,
-                                    template=template,
-                                    mirror_axis=mirror_axis,
-                                    warp=warp)
-
-            if isinstance(x.k, type(None)) or x.k <= 0:
-                # Re-generate vectors
-                vect = x.points - hp
-                vect = vect / np.linalg.norm(vect, axis=1).reshape(-1, 1)
-                x._vect = vect
-            else:
-                # Set tangent vectors and alpha to None so they will be
-                # regenerated on demand
-                x._vect = x._alpha = None
-        elif isinstance(x, core.MeshNeuron):
-            x.vertices = mirror_brain(x.vertices,
-                                      template=template,
-                                      mirror_axis=mirror_axis,
-                                      warp=warp)
-        else:
-            raise TypeError(f"Don't know how to transform neuron of type '{type(x)}'")
-
-        if x.has_connectors:
-            x.connectors = mirror_brain(x.connectors,
-                                        template=template,
-                                        mirror_axis=mirror_axis,
-                                        warp=warp)
-        return x
-    elif isinstance(x, tm.Trimesh):
-        x = x.copy()
-        x.vertices = mirror_brain(x.vertices,
-                                  template=template,
-                                  mirror_axis=mirror_axis,
-                                  warp=warp)
-        return x
-    elif isinstance(x, pd.DataFrame):
+    if isinstance(x, pd.DataFrame):
         if any([c not in x.columns for c in ['x', 'y', 'z']]):
             raise ValueError('DataFrame must have x, y and z columns.')
         x = x.copy()
-        x.loc[:, ['x', 'y', 'z']] = mirror_brain(x[['x', 'y', 'z']].values.astype(float),
+        x.loc[:, ['x', 'y', 'z']] = mirror_space(x[['x', 'y', 'z']].values.astype(float),
                                                  template=template,
                                                  mirror_axis=mirror_axis,
                                                  warp=warp)
@@ -1173,7 +939,7 @@ def mirror_brain(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
         mirror_trans = None
 
     # Now find the meta info about the template brain
-    if isinstance(template, TemplateBrain):
+    if isinstance(template, TemplateSpace):
         tb = template
     else:
         tb = registry.find_template(template, non_found='raise')
@@ -1210,14 +976,14 @@ def mirror_brain(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
                   warp=mirror_trans)
 
 
-class TemplateBrain:
-    """Generic base class for template brains.
+class TemplateSpace:
+    """Generic base class for template spaces.
 
     Minimally, a template should have a `name` and `label` property. For
     mirroring, it also needs a `boundingbox`.
 
     See `navis-flybrains <https://github.com/schlegelp/navis-flybrains>`_ for
-    an example of how to use template brains.
+    an example of how to use templates.
     """
 
     def __init__(self, **properties):

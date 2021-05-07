@@ -11,7 +11,9 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-from .__version__ import __version__, __version_vector__
-
-from .xfm_funcs import xform, mirror
-from .bridging import registry, xform_space, mirror_space
+from .affine import AffineTransform
+from .base import BaseTransform, TransOptimizer, TransformSequence, AliasTransform
+from .cmtk import CMTKtransform
+from .h5reg import H5transform
+from .moving_least_squares import MovingLeastSquaresTransform
+from .thinplate import TPStransform

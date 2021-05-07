@@ -24,7 +24,7 @@ import subprocess
 import numpy as np
 import pandas as pd
 
-from . import utils
+from .. import utils
 from .base import BaseTransform, TransformSequence
 
 __all__ = ['xform_cmtk']

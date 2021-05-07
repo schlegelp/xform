@@ -18,7 +18,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from inspect import signature
 
-from . import utils
+from .. import utils
 
 
 def trigger_init(func):

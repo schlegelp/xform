@@ -11,7 +11,4 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-from .__version__ import __version__, __version_vector__
-
-from .xfm_funcs import xform, mirror
-from .bridging import registry, xform_space, mirror_space
+from .templates import registry, TemplateSpace, xform_space, mirror_space

@@ -12,26 +12,22 @@
 #    GNU General Public License for more details.
 
 import math
-import numbers
 
 import numpy as np
 import pandas as pd
-import trimesh as tm
 
 from scipy.spatial.distance import pdist
 from typing import Union, Optional
 
 from . import utils
-from .base import BaseTransform, TransformSequence, TransOptimizer
-from .affine import AffineTransform
+from .transforms.base import BaseTransform, TransformSequence
+from .transforms.affine import AffineTransform
 
 
-def xform(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
+def xform(x: Union['pd.DataFrame', 'np.ndarray'],
           transform: Union[BaseTransform, TransformSequence],
           affine_fallback: bool = True,
-          caching: bool = True) -> Union['core.NeuronObject',
-                                                      'pd.DataFrame',
-                                                      'np.ndarray']:
+          caching: bool = True) -> np.ndarray:
     """Apply transform(s) to data.
 
     Notes
@@ -99,105 +95,13 @@ def xform(x: Union['core.NeuronObject', 'pd.DataFrame', 'np.ndarray'],
     elif not isinstance(transform, TransformSequence):
         raise TypeError(f'Expected Transform or TransformSequence, got "{type(transform)}"')
 
-    if isinstance(x, core.NeuronList):
-        if len(x) == 1:
-            x = x[0]
-        else:
-            xf = []
-            # Get the transformation sequence
-            with TransOptimizer(transform, bbox=x.bbox, caching=caching):
-                for i, n in enumerate(config.tqdm(x, desc='Xforming',
-                                                  disable=config.pbar_hide,
-                                                  leave=config.pbar_leave)):
-                    xf.append(xform(n,
-                                    transform=transform,
-                                    affine_fallback=affine_fallback))
-            return x.__class__(xf)
-
-    if isinstance(x, core.BaseNeuron):
-        xf = x.copy()
-        # We will collate spatial data to reduce overhead from calling
-        # R's xform_brain
-        if isinstance(xf, core.TreeNeuron):
-            xyz = xf.nodes[['x', 'y', 'z']].values
-        elif isinstance(xf, core.MeshNeuron):
-            xyz = xf.vertices
-        elif isinstance(xf, core.Dotprops):
-            xyz = xf.points
-            # If this dotprops has a `k`, we only need to transform points and
-            # can regenerate the rest. If not, we need to make helper points
-            # to carry over vectors
-            if isinstance(xf.k, type(None)) or xf.k <= 0:
-                # Here is a question whether those helper points should be
-                # farther away to make things less noisy?
-                hp = xf.points + xf.vect
-                xyz = np.append(xyz, hp, axis=0)
-        else:
-            raise TypeError(f"Don't know how to transform neuron of type '{type(xf)}'")
-
-        # Add connectors if they exist
-        if xf.has_connectors:
-            xyz = np.vstack([xyz, xf.connectors[['x', 'y', 'z']].values])
-
-        # Do the xform of all spatial data
-        xyz_xf = xform(xyz,
-                       transform=transform,
-                       affine_fallback=affine_fallback)
-
-        # Guess change in spatial units
-        change, magnitude = _guess_change(xyz, xyz_xf, sample=1000)
-
-        # Round change -> this rounds to the first non-zero digit
-        # change = np.around(change, decimals=-magnitude)
-
-        # Map xformed coordinates back
-        if isinstance(xf, core.TreeNeuron):
-            xf.nodes.loc[:, ['x', 'y', 'z']] = xyz_xf[:xf.n_nodes]
-            # Fix radius based on our best estimate
-            if 'radius' in xf.nodes.columns:
-                xf.nodes['radius'] *= 10**magnitude
-        elif isinstance(xf, core.Dotprops):
-            xf.points = xyz_xf[:xf.points.shape[0]]
-
-            # If this dotprops has a `k`, set tangent vectors and alpha to
-            # None so they will be regenerated
-            if not isinstance(xf.k, type(None)) and xf.k > 0:
-                xf._vect = xf._alpha = None
-            else:
-                # Re-generate vectors
-                hp = xyz_xf[xf.points.shape[0]: xf.points.shape[0] * 2]
-                vect = xf.points - hp
-                vect = vect / np.linalg.norm(vect, axis=1).reshape(-1, 1)
-                xf._vect = vect
-        elif isinstance(xf, core.MeshNeuron):
-            xf.vertices = xyz_xf[:xf.vertices.shape[0]]
-
-        if xf.has_connectors:
-            xf.connectors.loc[:, ['x', 'y', 'z']] = xyz_xf[-xf.connectors.shape[0]:]
-
-        # Make an educated guess as to whether the units have changed
-        if hasattr(xf, 'units') and magnitude != 0:
-            if isinstance(xf.units, (config.ureg.Unit, config.ureg.Quantity)):
-                xf.units = (xf.units / 10**magnitude).to_compact()
-
-        # Fix soma radius if applicable
-        if hasattr(xf, 'soma_radius') and isinstance(xf.soma_radius, numbers.Number):
-            xf.soma_radius *= 10**magnitude
-
-        return xf
-    elif isinstance(x, pd.DataFrame):
+    if isinstance(x, pd.DataFrame):
         if any([c not in x.columns for c in ['x', 'y', 'z']]):
             raise ValueError('DataFrame must have x, y and z columns.')
         x = x.copy()
         x.loc[:, ['x', 'y', 'z']] = xform(x[['x', 'y', 'z']].values,
                                           transform=transform,
                                           affine_fallback=affine_fallback)
-        return x
-    elif isinstance(x, tm.Trimesh):
-        x = x.copy()
-        x.vertices = xform(x.vertices,
-                           transform=transform,
-                           affine_fallback=affine_fallback)
         return x
     else:
         try:
