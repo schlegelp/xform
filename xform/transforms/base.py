@@ -156,8 +156,15 @@ class TransformSequence:
 
     """
 
-    def __init__(self, *transforms, copy=True):
+    def __init__(self,
+                 *transforms,
+                 source_space: Optional[str] = None,
+                 target_space: Optional[str] = None,
+                 copy=True):
         """Initialize."""
+        self.source_space = source_space
+        self.target_space = target_space
+
         self.transforms = []
         for tr in transforms:
             if not isinstance(tr, (BaseTransform, TransformSequence)):
