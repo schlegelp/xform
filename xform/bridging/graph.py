@@ -150,7 +150,7 @@ class TransformRegistry:
 
         Parameters
         ----------
-        transform :         subclass of BaseTransform | TransformSequence
+        transform :         subclass of BaseTransform | TransformSequence | list thereof
                             A transform (AffineTransform, CMTKtransform, etc.)
                             or a TransformSequence.
         weight :            float | int
@@ -165,6 +165,13 @@ class TransformRegistry:
                             already constructed transform.
 
         """
+        if isinstance(transform, list):
+            for tr in transform:
+                self.register_transform(tr,
+                                        skip_existing=skip_existing,
+                                        weight=weight)
+            return
+
         assert isinstance(transform, (BaseTransform, TransformSequence))
 
         if not getattr(transform, 'source_space', None):
