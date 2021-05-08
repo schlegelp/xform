@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -15,6 +15,8 @@ import copy
 
 import numpy as np
 
+from typing import Optional
+
 from .base import BaseTransform
 
 
@@ -30,10 +32,10 @@ class AffineTransform(BaseTransform):
     --------
     A simple scaling transform
 
-    >>> from navis import transforms
+    >>> import xform
     >>> import numpy as np
     >>> M = np.diag([1e3, 1e3, 1e3, 1])
-    >>> tr = transforms.affine.AffineTransform(M)
+    >>> tr = xform.AffineTransform(M)
     >>> points = np.array([[0, 0, 0], [1, 1, 1]])
     >>> tr.xform(points)
     array([[   0.,    0.,    0.],
@@ -41,7 +43,13 @@ class AffineTransform(BaseTransform):
 
     """
 
-    def __init__(self, matrix: np.ndarray, direction: str = 'forward'):
+    def __init__(self,
+                 matrix: np.ndarray,
+                 direction: str = 'forward',
+                 *,
+                 source_space: Optional[str] = None,
+                 target_space: Optional[str] = None,
+                 ):
         """Initialize transform."""
         assert direction in ('forward', 'inverse')
 
@@ -50,8 +58,11 @@ class AffineTransform(BaseTransform):
         if direction == 'inverse':
             self.matrix = np.linalg.inv(self.matrix)
 
+        self.source_space = source_space
+        self.target_space = target_space
+
     def __eq__(self, other: 'AffineTransform') -> bool:
-        """Implements equality comparison."""
+        """Compare to other. Return True if the same."""
         if isinstance(other, AffineTransform):
             if np.all(self.matrix == other.matrix):
                 return True

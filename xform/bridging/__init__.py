@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -11,4 +11,4 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-from .templates import registry, TemplateSpace, xform_space, mirror_space
+from .graph import registry

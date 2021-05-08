@@ -6,6 +6,7 @@ setuptools>=50.6
 tqdm>=4.45
 typing-extensions>=3.7.4
 molesq>=0.2.0
+fuzzywuzzy>=0.18
 
 #extra: dev
 

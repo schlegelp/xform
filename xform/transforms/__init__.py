@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -14,6 +14,6 @@
 from .affine import AffineTransform
 from .base import BaseTransform, TransOptimizer, TransformSequence, AliasTransform
 from .cmtk import CMTKtransform
-from .h5reg import H5transform
+from .h5 import H5transform
 from .moving_least_squares import MovingLeastSquaresTransform
 from .thinplate import TPStransform

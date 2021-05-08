@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ def make_iterable(x,
 
     Examples
     --------
-    >>> from navis.utils import make_iterable
+    >>> from xform.utils import make_iterable
     >>> make_iterable(1)
     array([1])
     >>> make_iterable([1])
@@ -56,7 +56,7 @@ def make_non_iterable(x):
 
     Examples
     --------
-    >>> from navis.utils import make_non_iterable
+    >>> from xform.utils import make_non_iterable
     >>> make_non_iterable([1])
     1
     >>> make_non_iterable(1)
@@ -79,7 +79,7 @@ def is_iterable(x: Any) -> bool:
 
     Examples
     --------
-    >>> from navis.utils import is_iterable
+    >>> from xform.utils import is_iterable
     >>> is_iterable(['a'])
     True
     >>> is_iterable('a')

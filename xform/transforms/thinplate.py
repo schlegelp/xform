@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,8 @@ import morphops as mops
 import numpy as np
 import pandas as pd
 
+from typing import Optional
+
 from .base import BaseTransform
 
 
@@ -25,19 +27,19 @@ class TPStransform(BaseTransform):
 
     Parameters
     ----------
-    landmarks_source :  (M, 3) numpy array
+    source_landmarks :  (M, 3) numpy array
                         Source landmarks as x/y/z coordinates.
-    landmarks_target :  (M, 3) numpy array
+    target_landmarks :  (M, 3) numpy array
                         Target landmarks as x/y/z coordinates.
 
     Examples
     --------
-    >>> from navis import transforms
+    >>> import xform
     >>> import numpy as np
     >>> # Generate some mock landmarks
     >>> src = np.array([[0, 0, 0], [10, 10, 10], [100, 100, 100], [80, 10, 30]])
     >>> trg = np.array([[1, 15, 5], [9, 18, 21], [80, 99, 120], [5, 10, 80]])
-    >>> tr = transforms.thinplate.TPStransform(src, trg)
+    >>> tr = xform.TPStransform(src, trg)
     >>> points = np.array([[0, 0, 0], [50, 50, 50]])
     >>> tr.xform(points)
     array([[ 1.        , 15.        ,  5.        ],
@@ -45,15 +47,23 @@ class TPStransform(BaseTransform):
 
     """
 
-    def __init__(self, landmarks_source: np.ndarray,
-                 landmarks_target: np.ndarray,
-                 direction: str = 'forward'):
-        """Initialize class."""
+    def __init__(self,
+                 source_landmarks: np.ndarray,
+                 target_landmarks: np.ndarray,
+                 direction: str = 'forward',
+                 *,
+                 source_space: Optional[str] = None,
+                 target_space: Optional[str] = None,
+                 ):
+        """Initialize transform."""
         assert direction in ('forward', 'inverse')
 
         # Some checks
-        self.source = np.asarray(landmarks_source)
-        self.target = np.asarray(landmarks_target)
+        self.source = np.asarray(source_landmarks)
+        self.target = np.asarray(target_landmarks)
+
+        self.source_space = source_space
+        self.target_space = target_space
 
         if direction == 'inverse':
             self.source, self.target = self.target, self.source
@@ -71,7 +81,7 @@ class TPStransform(BaseTransform):
         self._calc_tps_coefs()
 
     def __eq__(self, other) -> bool:
-        """Implement equality comparison."""
+        """Compare to other. Return True if the same."""
         if isinstance(other, TPStransform):
             if self.source.shape[0] == other.source.shape[0]:
                 if np.all(self.source == other.source):

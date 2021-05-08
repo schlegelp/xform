@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -13,5 +13,6 @@
 
 from .__version__ import __version__, __version_vector__
 
-from .xfm_funcs import xform, mirror
-from .bridging import registry, xform_space, mirror_space
+from .xfm_funcs import xform, mirror, xform_space, mirror_space
+from .bridging import registry
+from . import transforms

@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -17,6 +17,7 @@ import numpy as np
 
 from abc import ABC, abstractmethod
 from inspect import signature
+from typing import Optional, Any
 
 from .. import utils
 
@@ -34,7 +35,24 @@ def trigger_init(func):
 
 
 class BaseTransform(ABC):
-    """Abstract base class for transforms."""
+    """Abstract base class for transforms.
+
+    Parameters
+    ----------
+    source_space :  Optional[SpaceRef]
+                    To refer to the source space.
+    target_space :  Optional[SpaceRef]
+                    To refer to the target space.
+
+    """
+
+    def __init__(self,
+                 *,
+                 source_space: Optional[str] = None,
+                 target_space: Optional[str] = None,
+                 ):
+        self.source_space = source_space
+        self.target_space = target_space
 
     def append(self, other: 'BaseTransform'):
         """Append another transform to this one.
@@ -48,6 +66,15 @@ class BaseTransform(ABC):
     def check_if_possible(self, on_error: str = 'raise'):
         """Test if running the transform is possible."""
         return
+
+    @abstractmethod
+    def __eq__(self, other: Any) -> bool:
+        """Compare to other. Return True if the same.
+
+        If the transform can not be compared this should raise a
+        ``NotImplementedError``.
+        """
+        raise NotImplementedError
 
     @abstractmethod
     def __neg__(self) -> 'BaseTransform':
@@ -79,9 +106,14 @@ class AliasTransform(BaseTransform):
     Useful for defining aliases.
     """
 
-    def __init__(self):
-        """Initialize."""
-        pass
+    def __init__(self,
+                 *,
+                 source_space: Optional[str] = None,
+                 target_space: Optional[str] = None,
+                 ):
+        """Initialize transform."""
+        self.source_space = source_space
+        self.target_space = target_space
 
     def __neg__(self) -> 'AliasTransform':
         """Invert transform."""
@@ -232,8 +264,8 @@ class TransOptimizer:
 
     Examples
     --------
-    >>> from navis.transforms import h5reg
-    >>> from navis.transforms.base import TransOptimizer
+    >>> from xform.transforms import h5reg
+    >>> from xform.transforms.base import TransOptimizer
     >>> tr = h5reg.H5transform('path/to/reg.h5', direction='inverse') # doctest: +SKIP
     >>> with TransOptimizer(tr, mode='aggressive'):                   # doctest: +SKIP
     >>>     xf = tr.xform(pts)                                        # doctest: +SKIP

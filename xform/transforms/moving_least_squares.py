@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -11,57 +11,64 @@
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 
-from copy import deepcopy
-
 import numpy as np
 import pandas as pd
+
+from copy import deepcopy
 from molesq import Transformer
+from typing import Optional
 
 from .base import BaseTransform
 
 
 class MovingLeastSquaresTransform(BaseTransform):
-    def __init__(
-        self,
-        landmarks_source: np.ndarray,
-        landmarks_target: np.ndarray,
-        direction: str = 'forward',
-    ) -> None:
-        """Moving Least Squares transforms of 3D spatial data.
+    """Moving Least Squares transforms of 3D spatial data.
 
-        Uses the
-        `molesq <https://github.com/clbarnes/molesq>`_
-        library, which packages the
-        `implementation by Casey Schneider-Mizell <https://github.com/ceesem/catalysis/blob/master/catalysis/transform.py>`_
-        of the affine algorithm published in
-        `Schaefer et al. 2006 <https://dl.acm.org/doi/pdf/10.1145/1179352.1141920>`_.
+    Uses the
+    `molesq <https://github.com/clbarnes/molesq>`_
+    library, which packages the
+    `implementation by Casey Schneider-Mizell <https://github.com/ceesem/catalysis/blob/master/catalysis/transform.py>`_
+    of the affine algorithm published in
+    `Schaefer et al. 2006 <https://dl.acm.org/doi/pdf/10.1145/1179352.1141920>`_.
 
-        Parameters
-        ----------
-        landmarks_source : np.ndarray
-            Source landmarks as x/y/z coordinates.
-        landmarks_target : np.ndarray
-            Target landmarks as x/y/z coordinates.
-        direction : str
-            'forward' (default) or 'inverse' (treat the target as the source and vice versa)
+    Parameters
+    ----------
+    landmarks_source : np.ndarray
+        Source landmarks as x/y/z coordinates.
+    landmarks_target : np.ndarray
+        Target landmarks as x/y/z coordinates.
+    direction : str
+        'forward' (default) or 'inverse' (treat the target as the source and vice versa)
 
-        Examples
-        --------
-        >>> from navis import transforms
-        >>> import numpy as np
-        >>> # Generate some mock landmarks
-        >>> src = np.array([[0, 0, 0], [10, 10, 10], [100, 100, 100], [80, 10, 30]])
-        >>> trg = np.array([[1, 15, 5], [9, 18, 21], [80, 99, 120], [5, 10, 80]])
-        >>> tr = transforms.MovingLeastSquaresTransform(src, trg)
-        >>> points = np.array([[0, 0, 0], [50, 50, 50]])
-        >>> tr.xform(points)
-        array([[ 1.        , 15.        ,  5.        ],
-               [17.56361725, 43.32071504, 59.3147564 ]])
+    Examples
+    --------
+    >>> import xform
+    >>> import numpy as np
+    >>> # Generate some mock landmarks
+    >>> src = np.array([[0, 0, 0], [10, 10, 10], [100, 100, 100], [80, 10, 30]])
+    >>> trg = np.array([[1, 15, 5], [9, 18, 21], [80, 99, 120], [5, 10, 80]])
+    >>> tr = xform.MovingLeastSquaresTransform(src, trg)
+    >>> points = np.array([[0, 0, 0], [50, 50, 50]])
+    >>> tr.xform(points)
+    array([[ 1.        , 15.        ,  5.        ],
+           [17.56361725, 43.32071504, 59.3147564 ]])
 
-        """
+    """
+
+    def __init__(self,
+                 source_landmarks: np.ndarray,
+                 target_landmarks: np.ndarray,
+                 direction: str = 'forward',
+                 *,
+                 source_space: Optional[str] = None,
+                 target_space: Optional[str] = None) -> None:
+        """Initialize transform."""
         assert direction in ('forward', 'inverse')
-        self.transformer = Transformer(landmarks_source, landmarks_target)
+
+        self.transformer = Transformer(source_landmarks, target_landmarks)
         self.reverse = direction == 'inverse'
+        self.source_space = source_space
+        self.target_space = target_space
 
     def xform(self, points: np.ndarray) -> np.ndarray:
         """Transform points.
@@ -91,6 +98,7 @@ class MovingLeastSquaresTransform(BaseTransform):
         return out
 
     def __eq__(self, o: object) -> bool:
+        """Compare to other. Return True if the same."""
         if not isinstance(o, MovingLeastSquaresTransform):
             return False
         for cp_this, cp_that in zip(

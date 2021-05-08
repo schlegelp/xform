@@ -1,4 +1,4 @@
-#    This script is part of navis (http://www.github.com/schlegelp/xform).
+#    This script is part of xform (http://www.github.com/schlegelp/xform).
 #    Copyright (C) 2021 Philipp Schlegel
 #
 #    This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,8 @@ import subprocess
 
 import numpy as np
 import pandas as pd
+
+from typing import Optional
 
 from .. import utils
 from .base import BaseTransform, TransformSequence
@@ -88,63 +90,6 @@ def cmtk_version(as_string=False):
         return tuple(int(v) for v in version.split('.'))
 
 
-@requires_cmtk
-def xform_cmtk(points: np.ndarray, transforms, inverse: bool = False,
-               affine_fallback: bool = False, **kwargs) -> np.ndarray:
-    """Xform 3d coordinates.
-
-    Parameters
-    ----------
-    points :            (N, 3) array | pandas.DataFrame
-                        Points to transform. DataFrame must have x/y/z columns.
-    transforms :        filepath(s) | CMTKtransform(s)
-                        Either filepath to CMTK transform or ``CMTKtransform``.
-                        Multiple regs must be given as list and will be applied
-                        sequentially in the order provided.
-    inverse :           bool | list thereof
-                        Whether to invert transforms. If single boolean will
-                        apply to all transforms. Can also provide ``inverse` as
-                        list of booleans.
-    affine_fallback :   bool
-                        If True, points that failed to transform during warping
-                        transform will be transformed using only the affine
-                        transform.
-
-    Returns
-    -------
-    pointsxf :          (N, 3) numpy.ndarray
-                        Transformed points. Will contain `np.nan` for points
-                        that did not transform.
-
-    """
-    transforms = list(utils.make_iterable(transforms))
-
-    if isinstance(inverse, bool):
-        inverse = [inverse] * len(transforms)
-
-    directions = ['forward' if not i else 'inverse' for i in inverse]
-
-    for i, r in enumerate(transforms):
-        if not isinstance(r, CMTKtransform):
-            if not isinstance(r, (str, pathlib.Path)):
-                raise TypeError('`reg` must be filepath or CMTKtransform')
-            transforms[i] = CMTKtransform(r, directions=directions[i])
-
-    # Combine all transforms into a sequence of transforms
-    seq = TransformSequence(*transforms)
-
-    # Transform points
-    xf = seq.xform(points)
-
-    # If requested, try again with affine only for points that failed to xform
-    if affine_fallback:
-        isnan = np.any(np.isnan(xf), axis=1)
-        if np.any(isnan):
-            xf[isnan] = seq.xform(points[isnan], affine_only=True)
-
-    return xf
-
-
 class CMTKtransform(BaseTransform):
     """CMTK transforms of 3D spatial data.
 
@@ -162,13 +107,20 @@ class CMTKtransform(BaseTransform):
 
     Examples
     --------
-    >>> from navis import transforms
-    >>> tr = transforms.cmtk.CMTKtransform('/path/to/CMTK_directory.list')
+    >>> import xform
+    >>> tr = xform.CMTKtransform('/path/to/CMTK_directory.list')
     >>> tr.xform(points) # doctest: +SKIP
 
     """
 
-    def __init__(self, regs: list, directions: str = 'forward', threads: int = None):
+    def __init__(self,
+                 regs: list,
+                 directions: str = 'forward',
+                 threads: int = None,
+                 *,
+                 source_space: Optional[str] = None,
+                 target_space: Optional[str] = None):
+        """Initialize transform."""
         self.directions = list(utils.make_iterable(directions))
         for d in self.directions:
             assert d in ('forward', 'inverse'), ('`direction` must be "foward"'
@@ -184,8 +136,11 @@ class CMTKtransform(BaseTransform):
         if len(self.regs) != len(self.directions):
             raise ValueError('Must provide one direction per regs')
 
+        self.source_space = source_space
+        self.target_space = target_space
+
     def __eq__(self, other: 'CMTKtransform') -> bool:
-        """Implement equality comparison."""
+        """Compare to other. Return True if the same."""
         if isinstance(other, CMTKtransform):
             if len(self) == len(other):
                 if all([self.regs[i] == other.regs[i] for i in range(len(self))]):
