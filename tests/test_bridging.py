@@ -1,5 +1,7 @@
 import xform
 
+import numpy as np
+
 from pathlib import Path
 
 datapath = Path(__file__).parent / "data"
@@ -42,3 +44,24 @@ def test_bridging():
     path2, transeq2 = registry.shortest_bridging_seq('space1', 'space2.1')
     assert len(path2) == 3
     assert len(transeq2) == 2
+
+    registry.clear()
+
+
+def test_xform_space():
+    # First register some transforms
+    test_registration(clear=False)
+
+    # Some points
+    pts = np.zeros((4, 3))
+
+    # Forward transform
+    xf_fw = xform.xform_space(pts, source='space1', target='space2.1')
+    assert xf_fw.shape == pts.shape
+    assert np.all(xf_fw == -1)
+
+    # And back
+    xf_rv = xform.xform_space(xf_fw, source='space2.1', target='space1')
+    assert np.all(pts == xf_rv)
+
+    registry.clear()
