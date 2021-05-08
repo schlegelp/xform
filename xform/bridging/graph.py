@@ -27,7 +27,6 @@ import networkx as nx
 import seaborn as sns
 
 from matplotlib.lines import Line2D
-
 from collections import namedtuple
 from typing import List, Union, Optional
 from typing_extensions import Literal

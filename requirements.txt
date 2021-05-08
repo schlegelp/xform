@@ -7,6 +7,9 @@ tqdm>=4.45
 typing-extensions>=3.7.4
 molesq>=0.2.0
 fuzzywuzzy>=0.18
+matplotlib>=3.2
+networkx>=2.4
+seaborn>=0.10
 
 #extra: dev
 
