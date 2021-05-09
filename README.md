@@ -15,7 +15,7 @@ split off into a separate general-purpose package.
 
 - [CMTK](https://www.nitrc.org/docman/?group_id=212) warp transforms
 - [H5 deformation fields](https://github.com/saalfeldlab/template-building/wiki/Hdf5-Deformation-fields)
-- Landmark-based thin-plate spline transforms (powered by [morpho](https://github.com/vaipatel/morphops))
+- Landmark-based thin-plate spline transforms (powered by [morphops](https://github.com/vaipatel/morphops))
 - Landmark-based least-moving square transforms (powered by [molesq](https://github.com/clbarnes/molesq))
 - Affine transformations
 
@@ -97,7 +97,7 @@ be in microns but our data is in nanometers:
 
 When working with many interconnected transforms (e.g. A->B, B->C, B->D, etc.),
 you can register the individual transforms and let `xform` plot the shortest
-path to get from a given source to a given target for yo:
+path to get from a given source to a given target for you:
 
 ```Python
 >>> import xform
@@ -115,7 +115,7 @@ path to get from a given source to a given target for yo:
 >>> path, trans_seq = xform.registry.shortest_bridging_seq(source='A', target='C')
 >>> path
 array(['A', 'B', 'C'], dtype='<U1')
->>> trans_seq 
+>>> trans_seq
 TransformSequence with 2 transform(s)
 ```
 
