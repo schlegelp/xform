@@ -1,5 +1,6 @@
 import xform
 
+import matplotlib as mpl
 import numpy as np
 
 from pathlib import Path
@@ -7,6 +8,8 @@ from pathlib import Path
 datapath = Path(__file__).parent / "data"
 
 registry = xform.registry
+
+mpl.use('Agg')
 
 
 def test_registration(clear=True):
@@ -25,6 +28,13 @@ def test_registration(clear=True):
     # Register again
     registry.register_transform(tr, skip_existing=True)
     assert len(registry) == 2
+
+    # Test summary
+    s = registry.summary()
+    assert s.shape[0] == 2
+
+    # Test plotting path
+    registry.plot_bridging_graph()
 
     if clear:
         registry.clear()
