@@ -7,14 +7,14 @@ from pathlib import Path
 
 datapath = Path(__file__).parent / "data"
 
-registry = xform.registry
-
 mpl.use('Agg')
+
+# Initialize a shared registry
+registry = xform.TransformRegistry()
 
 
 def test_registration(clear=True):
     """Test registering transforms."""
-
     # Register from file
     registry.register_transformfile(datapath / "space1_space2.h5")
 

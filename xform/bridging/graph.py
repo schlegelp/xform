@@ -513,10 +513,3 @@ class TransformRegistry:
             labels.append(t)
 
         plt.legend(lines, labels)
-
-
-# Initialize registry
-registry = TransformRegistry()
-
-# Scan standard paths
-registry.scan_paths()
