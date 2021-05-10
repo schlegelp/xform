@@ -156,21 +156,3 @@ def test_transform_sequence():
     # And back
     xf_rv = (-trseq).xform(xf_fw.copy())
     assert np.all(pts == xf_rv)
-
-
-def test_xform():
-    """Test xform."""
-    # Scale by factor of 10
-    tr = xform.transforms.AffineTransform(np.diag([10, 10, 10, 10]))
-
-    # Some points
-    pts = np.full((4, 3), fill_value=1)
-
-    # Forward transform
-    xf_fw = xform.xform(pts, transform=tr)
-    assert xf_fw.shape == pts.shape
-    assert np.all(xf_fw == 10)
-
-    # And back
-    xf_rv = xform.xform(xf_fw, transform=-tr)
-    assert np.all(pts == xf_rv)
