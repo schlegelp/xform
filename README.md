@@ -55,7 +55,7 @@ of two:
 >>> # Generate the affine matrix
 >>> m = np.diag([2, 2, 2, 2])
 >>> # Create the transform
->>> tr = xform.transforms.AffineTransform(m)
+>>> tr = xform.AffineTransform(m)
 >>> # Some 3D points to transform
 >>> points = np.array([[1,1,1], [2,2,2], [3,3,3]])
 >>> # Apply
@@ -80,7 +80,7 @@ For example, let's say we have a CMTK transform that requires spatial data to
 be in microns but our data is in nanometers:
 
 ```Python
->>> from xform.transforms import CMTKtransform, AffineTransform, TransformSequence
+>>> from xform import CMTKtransform, AffineTransform, TransformSequence
 >>> import numpy as np
 >>> # Initialize CMTK transform
 >>> cmtk = CMTKtransform('~/transform/target_source.list')
@@ -101,8 +101,10 @@ path to get from a given source to a given target for you:
 
 ```Python
 >>> import xform
->>> from xform.transforms import CMTKtransform, AffineTransform
+>>> from xform import CMTKtransform, AffineTransform, TransformRegistry
 >>> import numpy as np
+>>> # Initialize a registry
+>>> registry = TransformRegistry()
 >>> # Generate a couple transforms
 >>> # Note that we now provide source and target labels
 >>> tr1 = AffineTransform(np.diag([1e3, 1e3, 1e3, 1e3]),

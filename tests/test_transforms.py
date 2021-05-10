@@ -13,9 +13,9 @@ def test_h5_transform():
     # (100, 100, 100, 3) int8 deformation field that adds +1 to all points in
     # the forward direction and substracts -1 in the inverse
     f = datapath / "space1_space2.h5"
-    tr = xform.transforms.H5transform(f,
-                                      source_space='space1',
-                                      target_space='space2')
+    tr = xform.H5transform(f,
+                           source_space='space1',
+                           target_space='space2')
 
     # Some points dead center in the deformation field
     pts = np.full((4, 3), fill_value=50)
@@ -48,7 +48,7 @@ def test_h5_transform():
 def test_affinetransform():
     """Test affine transform."""
     # Scale by factor of 10
-    tr = xform.transforms.AffineTransform(np.diag([10, 10, 10, 10]))
+    tr = xform.AffineTransform(np.diag([10, 10, 10, 10]))
 
     # Some points dead center in the deformation field
     pts = np.full((4, 3), fill_value=1)
@@ -75,8 +75,8 @@ def test_tpsp_transform():
                     [0, 100, 0],
                     [0, 0, 100]])
     # Scale by factor of 10
-    tr = xform.transforms.TPStransform(source_landmarks=src,
-                                       target_landmarks=trg)
+    tr = xform.TPStransform(source_landmarks=src,
+                            target_landmarks=trg)
 
     # Some points
     pts = np.full((4, 3), fill_value=5)
@@ -103,8 +103,8 @@ def test_mls_transform():
                     [0, 100, 0],
                     [0, 0, 100]])
     # Scale by factor of 10
-    tr = xform.transforms.MovingLeastSquaresTransform(source_landmarks=src,
-                                                      target_landmarks=trg)
+    tr = xform.MovingLeastSquaresTransform(source_landmarks=src,
+                                           target_landmarks=trg)
 
     # Some points
     pts = np.full((4, 3), fill_value=5)
@@ -122,7 +122,7 @@ def test_mls_transform():
 def test_alias_transform():
     """Test alias transform."""
     # Generate transform
-    tr = xform.transforms.AliasTransform()
+    tr = xform.AliasTransform()
 
     # Some points
     pts = np.zeros((4, 3))
@@ -140,9 +140,9 @@ def test_alias_transform():
 def test_transform_sequence():
     """Test transform sequence."""
     # Generate transforms and combine into sequence
-    tr = xform.transforms.AliasTransform()
-    tr2 = xform.transforms.AliasTransform()
-    trseq = xform.transforms.TransformSequence(tr)
+    tr = xform.AliasTransform()
+    tr2 = xform.AliasTransform()
+    trseq = xform.TransformSequence(tr)
     trseq.append(tr2)
 
     # Some points

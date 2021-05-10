@@ -13,5 +13,5 @@
 
 from .__version__ import __version__, __version_vector__
 
-from .bridging import registry
-from . import transforms
+from .bridging import *
+from .transforms import *
