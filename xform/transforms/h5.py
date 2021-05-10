@@ -127,6 +127,9 @@ class H5transform(BaseTransform):
         x = H5transform(self.file, direction=new_direction, level=int(self.level),
                         cache=self.use_cache, full_ingest=False)
 
+        # Invert source and target space
+        x.source_space, x.target_space = x.target_space, x.source_space
+
         return x
 
     @property

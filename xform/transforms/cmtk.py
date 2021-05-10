@@ -163,6 +163,9 @@ class CMTKtransform(BaseTransform):
         x.regs = x.regs[::-1]
         x.directions = x.directions[::-1]
 
+        # Invert source and target space
+        x.source_space, x.target_space = x.target_space, x.source_space
+
         return x
 
     def __str__(self):

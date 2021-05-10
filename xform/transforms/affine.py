@@ -75,6 +75,9 @@ class AffineTransform(BaseTransform):
         # Invert affine matrix
         x.matrix = np.linalg.inv(x.matrix)
 
+        # Invert source and target space
+        x.source_space, x.target_space = x.target_space, x.source_space
+
         return x
 
     def copy(self) -> 'AffineTransform':

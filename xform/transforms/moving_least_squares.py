@@ -95,6 +95,9 @@ class MovingLeastSquaresTransform(BaseTransform):
         """Invert direction"""
         out = self.copy()
         out.reverse = not self.reverse
+
+        # Invert source and target space
+        out.source_space, out.target_space = out.target_space, out.source_space
         return out
 
     def __eq__(self, o: object) -> bool:

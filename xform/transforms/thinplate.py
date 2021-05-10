@@ -92,7 +92,9 @@ class TPStransform(BaseTransform):
     def __neg__(self) -> 'TPStransform':
         """Invert direction."""
         # Switch source and target
-        return TPStransform(self.target, self.source)
+        return TPStransform(self.target, self.source,
+                            source_space=self.target_space,
+                            target_space=self.source_space)
 
     def _calc_tps_coefs(self):
         # Calculate thinplate coefficients

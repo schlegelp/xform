@@ -117,7 +117,10 @@ class AliasTransform(BaseTransform):
 
     def __neg__(self) -> 'AliasTransform':
         """Invert transform."""
-        return self.copy()
+        x = self.copy()
+        # Invert source and target space
+        x.source_space, x.target_space = x.target_space, x.source_space
+        return x
 
     def __eq__(self, other):
         """Check if the same."""
@@ -185,7 +188,9 @@ class TransformSequence:
 
     def __neg__(self) -> 'TransformSequence':
         """Invert transform sequence."""
-        return TransformSequence(*[-t for t in self.transforms[::-1]])
+        return TransformSequence(*[-t for t in self.transforms[::-1]],
+                                 source_space=self.target_space,
+                                 target_space=self.source_space)
 
     def append(self, transform: 'BaseTransform'):
         """Add transform to list."""
