@@ -1,5 +1,8 @@
+[![Tests](https://github.com/schlegelp/xform/actions/workflows/test-package.yml/badge.svg)](https://github.com/schlegelp/xform/actions/workflows/test-package.yml)
+
 # xform [WIP]
-`xform` is a library to transform spatial data from one space to another.
+`xform` is a library to transform spatial data from one space to another and
+provides a common interface to combine different types of transforms.
 
 It was originally written for [navis](https://github.com/schlegelp/navis)
 to transform neurons from one brain template space to another and then
@@ -103,7 +106,7 @@ path to get from a given source to a given target for you:
 >>> import xform
 >>> from xform import CMTKtransform, AffineTransform, TransformRegistry
 >>> import numpy as np
->>> # Initialize a registry
+>>> # Create a transform registry
 >>> registry = TransformRegistry()
 >>> # Generate a couple transforms
 >>> # Note that we now provide source and target labels
@@ -112,9 +115,9 @@ path to get from a given source to a given target for you:
 >>> cmtk = CMTKtransform('~/transform/C_B.list',
 ...                      source_space='B', target_space='C')
 >>> # Register the transforms
->>> xform.registry.register_transform([tr1, cmtk])
+>>> registry.register_transform([tr1, cmtk])
 >>> # Now you ask the registry for the required transforms to move between spaces
->>> path, trans_seq = xform.registry.shortest_bridging_seq(source='A', target='C')
+>>> path, trans_seq = registry.shortest_bridging_seq(source='A', target='C')
 >>> path
 array(['A', 'B', 'C'], dtype='<U1')
 >>> trans_seq
