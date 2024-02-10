@@ -54,6 +54,12 @@ class BaseTransform(ABC):
         self.source_space = source_space
         self.target_space = target_space
 
+    def __str__(self):
+        return self.__repr__()
+
+    def __repr__(self):
+        return f'{type(self).split("."[-1])} (from={self.source_space}, to={self.target_space})'
+
     def append(self, other: 'BaseTransform'):
         """Append another transform to this one.
 
