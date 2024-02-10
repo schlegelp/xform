@@ -17,7 +17,16 @@ from .cmtk import CMTKtransform
 from .h5 import H5transform
 from .moving_least_squares import MovingLeastSquaresTransform
 from .thinplate import TPStransform
+from .elastix import ElastixTransform
 
-__all__ = ['AffineTransform', 'CMTKtransform', 'H5transform',
-           'MovingLeastSquaresTransform', 'TPStransform', 'TransformSequence',
-           'TransOptimizer', 'AliasTransform']
+__all__ = [
+    "AffineTransform",
+    "CMTKtransform",
+    "H5transform",
+    "MovingLeastSquaresTransform",
+    "TPStransform",
+    "TransformSequence",
+    "TransOptimizer",
+    "AliasTransform",
+    "ElastixTransform",
+]

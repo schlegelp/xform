@@ -17,6 +17,7 @@ split off into a separate general-purpose package.
 ### Supported transforms
 
 - [CMTK](https://www.nitrc.org/docman/?group_id=212) warp transforms
+- [Elastix](https://github.com/SuperElastix/elastix) warp transforms
 - [H5 deformation fields](https://github.com/saalfeldlab/template-building/wiki/Hdf5-Deformation-fields)
 - Landmark-based thin-plate spline transforms (powered by [morphops](https://github.com/vaipatel/morphops))
 - Landmark-based least-moving square transforms (powered by [molesq](https://github.com/clbarnes/molesq))
@@ -45,12 +46,13 @@ At the most basic level you can use individual transform from `xform.transforms`
 - `AffineTransform` for affine transforms using a
   [affine matrix](https://en.wikipedia.org/wiki/Transformation_matrix#Affine_transformations)
 - `CMTKtransform` for CMTK transforms
+- `ElastixTransform` for Elastix transforms
 - `TPStransform` or `MovingLeastSquaresTransform` for landmark-based transforms
-- `H5transform` for deformation-field transforms using Hdf5 files  
+- `H5transform` for deformation-field transforms using Hdf5 files
   ([specs](https://github.com/saalfeldlab/template-building/wiki/Hdf5-Deformation-fields))
 
 A quick example that uses an affine transform to scale coordinates by a factor
-of two:
+of 2:
 
 ```Python
 >>> import xform
