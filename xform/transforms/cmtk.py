@@ -29,8 +29,6 @@ from typing import Optional
 from .. import utils
 from .base import BaseTransform, TransformSequence
 
-__all__ = ['xform_cmtk']
-
 _search_path = os.environ['PATH']
 _search_path = [i for i in _search_path.split(os.pathsep) if len(i) > 0]
 _search_path += ['~/bin',
@@ -54,8 +52,7 @@ def find_cmtkbin(tool: str = 'streamxform') -> str:
             continue
 
         try:
-            next(path.glob(tool))
-            return path
+            return next(path.glob(tool)).resolve().parent
         except StopIteration:
             continue
         except BaseException:
