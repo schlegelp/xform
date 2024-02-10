@@ -38,6 +38,6 @@ jobs:
       run: |
         pip install --upgrade pip wheel
     - name: Install xform from Github
-      run: pip install git+git://github.com/schlegelp/xform@main
+      run: pip install git+https://github.com/schlegelp/xform@main
     - name: Test import
       run: python3 -c "import xform"
